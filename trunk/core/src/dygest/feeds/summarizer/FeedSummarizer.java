@@ -8,6 +8,10 @@ package dygest.feeds.summarizer;
 import com.sun.syndication.feed.synd.SyndContent;
 import com.sun.syndication.feed.synd.SyndEntryImpl;
 import com.sun.syndication.feed.synd.SyndFeed;
+import com.sun.syndication.fetcher.FeedFetcher;
+import com.sun.syndication.fetcher.impl.FeedFetcherCache;
+import com.sun.syndication.fetcher.impl.HashMapFeedInfoCache;
+import com.sun.syndication.fetcher.impl.HttpURLFeedFetcher;
 import com.sun.syndication.io.SyndFeedInput;
 import com.sun.syndication.io.SyndFeedOutput;
 import dygest.text.ScoredSentence;
@@ -24,6 +28,9 @@ import java.util.List;
 public class FeedSummarizer {
 
     private static SynmanticSummerizer summarizer = null;
+    private static FeedFetcherCache feedInfoCache = HashMapFeedInfoCache.getInstance();
+    private static FeedFetcher feedFetcher = new HttpURLFeedFetcher(feedInfoCache);
+
 
     static {
         try {
@@ -36,7 +43,7 @@ public class FeedSummarizer {
     private SyndFeed getFeed(String url) throws Exception {
         URL feedUrl = new URL(url);
         SyndFeedInput input = new SyndFeedInput(false);
-        SyndFeed feed = input.build(new InputStreamReader(feedUrl.openStream()));
+        SyndFeed feed = feedFetcher.retrieveFeed(feedUrl);
 
         return feed;
     }
