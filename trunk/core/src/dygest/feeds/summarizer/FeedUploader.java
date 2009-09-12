@@ -80,7 +80,7 @@ public class FeedUploader {
             FeedIndexRecord record = new FeedIndexRecord(url);
 
             // save into s3
-            s3.put(record.getHash(), f.getContent());
+            s3.put(record.getHash(), f.getContent(), true);
 
             // save into simple db
             db.put("feedindex", record);
