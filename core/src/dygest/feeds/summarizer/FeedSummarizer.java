@@ -14,9 +14,11 @@ import com.sun.syndication.fetcher.impl.HttpURLFeedFetcher;
 import com.sun.syndication.io.SyndFeedInput;
 import com.sun.syndication.io.SyndFeedOutput;
 import dygest.commons.db.simple.DocumentDB;
+import dygest.commons.store.s3.S3Accessor;
 import dygest.text.ScoredSentence;
 import dygest.text.summerizer.SynmanticSummerizer;
 import java.net.URL;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -31,6 +33,7 @@ public class FeedSummarizer {
     private static DocumentDB db = new DocumentDB();
     private static FeedFetcherCache feedInfoCache = HashMapFeedInfoCache.getInstance();
     private static FeedFetcher feedFetcher = new HttpURLFeedFetcher(feedInfoCache);
+    private static S3Accessor s3 = null;
 
     static {
         try {
@@ -58,22 +61,23 @@ public class FeedSummarizer {
 
                 for (SyndEntryImpl entry : entries) {
                     String uri = entry.getLink();
-                    StringBuffer summary = new StringBuffer();
-                    List<ScoredSentence> sentences = summarizer.summerize(uri);
-                    int len = 0;
-                    for (ScoredSentence s : sentences) {
-                        summary.append(s.getText());
-                        len++;
-                        if (len == 4) {
-                            break;
-                        }
-                    }
 
                     Iterator contentIter = entry.getContents().iterator();
                     while (contentIter.hasNext()) {
                         // Target the description node
                         SyndContent content =
                                 (SyndContent) contentIter.next();
+
+                        StringBuffer summary = new StringBuffer();
+                        List<ScoredSentence> sentences = summarizer.summarizeText(content.getValue());
+                        int len = 0;
+                        for (ScoredSentence s : sentences) {
+                            summary.append(s.getText());
+                            len++;
+                            if (len == 4) {
+                                break;
+                            }
+                        }
 
                         // Create and set a footer-appended description
                         content.setValue(summary.toString());
@@ -93,12 +97,26 @@ public class FeedSummarizer {
 
     public static void main(String args[]) {
         FeedSummarizer fs = new FeedSummarizer();
-        List<HashMap<String, String>> feeds = db.select("select * from feedindex");
 
-        for(HashMap<String, String> feedAsMap : feeds) {
-            if(feedAsMap.containsKey("url")) {
-                String url = feedAsMap.get("url");
-                fs.summarize(url);
+        while(true) {
+            List<HashMap<String, String>> feeds = db.select("select * from feedindex");
+
+            for(HashMap<String, String> feedAsMap : feeds) {
+                if(feedAsMap.containsKey("url")) {
+                    String url = feedAsMap.get("url");
+                    System.out.print("summarizing " + url + "\t");
+                    fs.summarize(url);
+                    System.out.println("[ DONE ]");
+                }
+            }
+
+            // sleep 5 mins
+            try {
+                System.out.println("[" + new Date().toLocaleString() + "] sleeping");
+                Thread.sleep(300000);
+            } catch(InterruptedException ie) {
+                ie.printStackTrace();
+                System.exit(1);
             }
         }
     }
