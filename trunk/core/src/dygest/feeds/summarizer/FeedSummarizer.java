@@ -2,7 +2,6 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-
 package dygest.feeds.summarizer;
 
 import com.sun.syndication.feed.synd.SyndContent;
@@ -14,10 +13,11 @@ import com.sun.syndication.fetcher.impl.HashMapFeedInfoCache;
 import com.sun.syndication.fetcher.impl.HttpURLFeedFetcher;
 import com.sun.syndication.io.SyndFeedInput;
 import com.sun.syndication.io.SyndFeedOutput;
+import dygest.commons.db.simple.DocumentDB;
 import dygest.text.ScoredSentence;
 import dygest.text.summerizer.SynmanticSummerizer;
-import java.io.InputStreamReader;
 import java.net.URL;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
@@ -28,14 +28,14 @@ import java.util.List;
 public class FeedSummarizer {
 
     private static SynmanticSummerizer summarizer = null;
+    private static DocumentDB db = new DocumentDB();
     private static FeedFetcherCache feedInfoCache = HashMapFeedInfoCache.getInstance();
     private static FeedFetcher feedFetcher = new HttpURLFeedFetcher(feedInfoCache);
-
 
     static {
         try {
             summarizer = new SynmanticSummerizer();
-        } catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -48,28 +48,29 @@ public class FeedSummarizer {
         return feed;
     }
 
-    public String summarize(String feedURL) {
-        if(summarizer != null) {
+    public void summarize(String feedURL) {
+        if (summarizer != null) {
             try {
                 SyndFeedOutput output = new SyndFeedOutput();
                 SyndFeed feed = getFeed(feedURL);
                 List<SyndEntryImpl> entries = feed.getEntries();
+                String title = feed.getTitle();
 
-                for(SyndEntryImpl entry : entries) {
+                for (SyndEntryImpl entry : entries) {
                     String uri = entry.getLink();
                     StringBuffer summary = new StringBuffer();
                     List<ScoredSentence> sentences = summarizer.summerize(uri);
                     int len = 0;
-                    for(ScoredSentence s : sentences) {
+                    for (ScoredSentence s : sentences) {
                         summary.append(s.getText());
                         len++;
-                        if(len == 4) {
+                        if (len == 4) {
                             break;
                         }
                     }
 
                     Iterator contentIter = entry.getContents().iterator();
-                    while(contentIter.hasNext()) {
+                    while (contentIter.hasNext()) {
                         // Target the description node
                         SyndContent content =
                                 (SyndContent) contentIter.next();
@@ -79,21 +80,26 @@ public class FeedSummarizer {
                     }
                 }
 
-                return output.outputString(feed);
-            } catch(Exception e) {
+                // store to db
+                Feed f = new Feed(feedURL, title, output.outputString(feed), false);
+                FeedUploader uploader = new FeedUploader(f);
+                uploader.upload();
+            } catch (Exception e) {
                 e.printStackTrace();
                 // return the original feed
             }
         }
-
-        return null;
     }
 
     public static void main(String args[]) {
         FeedSummarizer fs = new FeedSummarizer();
-        String feed = fs.summarize("http://googleblog.blogspot.com/atom.xml");
+        List<HashMap<String, String>> feeds = db.select("select * from feedindex");
 
-        System.out.println(feed);
+        for(HashMap<String, String> feedAsMap : feeds) {
+            if(feedAsMap.containsKey("url")) {
+                String url = feedAsMap.get("url");
+                fs.summarize(url);
+            }
+        }
     }
-
 }
