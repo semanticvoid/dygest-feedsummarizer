@@ -79,6 +79,9 @@ public class FeedSummarizer {
                             }
                         }
 
+                        // add footer
+                        summary.append("<br><p><i>summarized by <a href='http://dyge.st'>dyge.st</a></p>");
+
                         // Create and set a footer-appended description
                         content.setValue(summary.toString());
                     }
@@ -98,25 +101,14 @@ public class FeedSummarizer {
     public static void main(String args[]) {
         FeedSummarizer fs = new FeedSummarizer();
 
-        while(true) {
-            List<HashMap<String, String>> feeds = db.select("select * from feedindex");
+        List<HashMap<String, String>> feeds = db.select("select * from feedindex");
 
-            for(HashMap<String, String> feedAsMap : feeds) {
-                if(feedAsMap.containsKey("url")) {
-                    String url = feedAsMap.get("url");
-                    System.out.print("summarizing " + url + "\t");
-                    fs.summarize(url);
-                    System.out.println("[ DONE ]");
-                }
-            }
-
-            // sleep 5 mins
-            try {
-                System.out.println("[" + new Date().toLocaleString() + "] sleeping");
-                Thread.sleep(300000);
-            } catch(InterruptedException ie) {
-                ie.printStackTrace();
-                System.exit(1);
+        for (HashMap<String, String> feedAsMap : feeds) {
+            if (feedAsMap.containsKey("url")) {
+                String url = feedAsMap.get("url");
+                System.out.print("summarizing " + url + "\t");
+                fs.summarize(url);
+                System.out.println("[ DONE ]");
             }
         }
     }
