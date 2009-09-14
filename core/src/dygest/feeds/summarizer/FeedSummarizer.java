@@ -85,6 +85,24 @@ public class FeedSummarizer {
                         // Create and set a footer-appended description
                         content.setValue(summary.toString());
                     }
+
+                    SyndContent desc = entry.getDescription();
+                    if (desc != null) {
+                        StringBuffer summary = new StringBuffer();
+                        List<ScoredSentence> sentences = summarizer.summarizeText(desc.getValue());
+                        int len = 0;
+                        for (ScoredSentence s : sentences) {
+                            summary.append(s.getText());
+                            len++;
+                            if (len == 4) {
+                                break;
+                            }
+                        }
+                        // add footer
+                        summary.append("<br><p><i>summarized by <a href='http://dyge.st'>dyge.st</a></p>");
+                        // Create and set a footer-appended description
+                        desc.setValue(summary.toString());
+                    }
                 }
 
                 // store to db
