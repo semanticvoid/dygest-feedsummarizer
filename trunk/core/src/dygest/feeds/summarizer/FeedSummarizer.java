@@ -70,11 +70,10 @@ public class FeedSummarizer {
 
                         StringBuffer summary = new StringBuffer();
                         List<ScoredSentence> sentences = summarizer.summarizeText(content.getValue());
-                        int len = 0;
+                        int len = (int) Math.ceil(0.3 * sentences.size());
                         for (ScoredSentence s : sentences) {
                             summary.append(s.getText());
-                            len++;
-                            if (len == 4) {
+                            if (len-- == 0) {
                                 break;
                             }
                         }
@@ -90,11 +89,10 @@ public class FeedSummarizer {
                     if (desc != null) {
                         StringBuffer summary = new StringBuffer();
                         List<ScoredSentence> sentences = summarizer.summarizeText(desc.getValue());
-                        int len = 0;
+                        int len = (int) Math.ceil(0.3 * sentences.size());
                         for (ScoredSentence s : sentences) {
                             summary.append(s.getText());
-                            len++;
-                            if (len == 4) {
+                            if (len-- == 0) {
                                 break;
                             }
                         }
