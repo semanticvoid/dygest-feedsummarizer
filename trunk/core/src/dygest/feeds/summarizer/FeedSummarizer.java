@@ -60,9 +60,9 @@ public class FeedSummarizer {
                 String link = feed.getLink();
                 boolean expand = false;
                 
-                if(link.contains("readtwit.com")) {
+//                if(link.contains("readtwit.com")) {
                     expand = true;
-                }
+//                }
 
                 for (SyndEntryImpl entry : entries) {
                     String uri = entry.getLink();
@@ -92,9 +92,11 @@ public class FeedSummarizer {
                         if(summary == null) {
                             summary = new StringBuffer();
                             List<ScoredSentence> sentences;
-                            if(content.getValue().length() > 512) {
+                            if(content.getValue().length() > 2000) {
+                                System.out.println("using content for " + uri);
                                 sentences = summarizer.summarizeText(content.getValue());
                             } else {
+                                System.out.println("get url: " + uri);
                                 sentences = summarizer.summarizeURL(uri);
                             }
 
@@ -119,7 +121,7 @@ public class FeedSummarizer {
                         if(summary == null) {
                             summary = new StringBuffer();
                             List<ScoredSentence> sentences;
-                            if(desc.getValue().length() > 512) {
+                            if(desc.getValue().length() > 2000) {
                                 sentences = summarizer.summarizeText(desc.getValue());
                             } else {
                                 sentences = summarizer.summarizeURL(uri);
