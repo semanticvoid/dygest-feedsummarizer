@@ -18,7 +18,6 @@ import dygest.commons.store.s3.S3Accessor;
 import dygest.text.ScoredSentence;
 import dygest.text.summerizer.SynmanticSummerizer;
 import java.net.URL;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -58,9 +57,31 @@ public class FeedSummarizer {
                 SyndFeed feed = getFeed(feedURL);
                 List<SyndEntryImpl> entries = feed.getEntries();
                 String title = feed.getTitle();
+                String link = feed.getLink();
+                boolean expand = false;
+                
+                if(link.contains("readtwit.com")) {
+                    expand = true;
+                }
 
                 for (SyndEntryImpl entry : entries) {
                     String uri = entry.getLink();
+                    StringBuffer summary = null;
+
+                    if(expand) {
+                        summary = new StringBuffer();
+                        List<ScoredSentence> sentences = summarizer.summarizeURL(uri);
+                        int len = (int) Math.ceil(0.3 * sentences.size());
+                        for (ScoredSentence s : sentences) {
+                            summary.append(s.getText());
+                            if (len-- == 0) {
+                                break;
+                            }
+                        }
+
+                        // add footer
+                        summary.append("<br><p><i>summarized by <a href='http://dyge.st'>dyge.st</a></p>");
+                    }
 
                     Iterator contentIter = entry.getContents().iterator();
                     while (contentIter.hasNext()) {
@@ -68,18 +89,20 @@ public class FeedSummarizer {
                         SyndContent content =
                                 (SyndContent) contentIter.next();
 
-                        StringBuffer summary = new StringBuffer();
-                        List<ScoredSentence> sentences = summarizer.summarizeText(content.getValue());
-                        int len = (int) Math.ceil(0.3 * sentences.size());
-                        for (ScoredSentence s : sentences) {
-                            summary.append(s.getText());
-                            if (len-- == 0) {
-                                break;
+                        if(summary == null) {
+                            summary = new StringBuffer();
+                            List<ScoredSentence> sentences = summarizer.summarizeText(content.getValue());
+                            int len = (int) Math.ceil(0.3 * sentences.size());
+                            for (ScoredSentence s : sentences) {
+                                summary.append(s.getText());
+                                if (len-- == 0) {
+                                    break;
+                                }
                             }
-                        }
 
-                        // add footer
-                        summary.append("<br><p><i>summarized by <a href='http://dyge.st'>dyge.st</a></p>");
+                            // add footer
+                            summary.append("<br><p><i>summarized by <a href='http://dyge.st'>dyge.st</a></p>");
+                        }
 
                         // Create and set a footer-appended description
                         content.setValue(summary.toString());
@@ -87,17 +110,20 @@ public class FeedSummarizer {
 
                     SyndContent desc = entry.getDescription();
                     if (desc != null) {
-                        StringBuffer summary = new StringBuffer();
-                        List<ScoredSentence> sentences = summarizer.summarizeText(desc.getValue());
-                        int len = (int) Math.ceil(0.3 * sentences.size());
-                        for (ScoredSentence s : sentences) {
-                            summary.append(s.getText());
-                            if (len-- == 0) {
-                                break;
+                        if(summary == null) {
+                            summary = new StringBuffer();
+                            List<ScoredSentence> sentences = summarizer.summarizeText(desc.getValue());
+                            int len = (int) Math.ceil(0.3 * sentences.size());
+                            for (ScoredSentence s : sentences) {
+                                summary.append(s.getText());
+                                if (len-- == 0) {
+                                    break;
+                                }
                             }
+                            // add footer
+                            summary.append("<br><p><i>summarized by <a href='http://dyge.st'>dyge.st</a></p>");
                         }
-                        // add footer
-                        summary.append("<br><p><i>summarized by <a href='http://dyge.st'>dyge.st</a></p>");
+                        
                         // Create and set a footer-appended description
                         desc.setValue(summary.toString());
                     }
