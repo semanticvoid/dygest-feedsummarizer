@@ -91,7 +91,13 @@ public class FeedSummarizer {
 
                         if(summary == null) {
                             summary = new StringBuffer();
-                            List<ScoredSentence> sentences = summarizer.summarizeText(content.getValue());
+                            List<ScoredSentence> sentences;
+                            if(content.getValue().length() > 512) {
+                                sentences = summarizer.summarizeText(content.getValue());
+                            } else {
+                                sentences = summarizer.summarizeURL(uri);
+                            }
+
                             int len = (int) Math.ceil(0.3 * sentences.size());
                             for (ScoredSentence s : sentences) {
                                 summary.append(s.getText());
@@ -112,7 +118,12 @@ public class FeedSummarizer {
                     if (desc != null) {
                         if(summary == null) {
                             summary = new StringBuffer();
-                            List<ScoredSentence> sentences = summarizer.summarizeText(desc.getValue());
+                            List<ScoredSentence> sentences;
+                            if(desc.getValue().length() > 512) {
+                                sentences = summarizer.summarizeText(desc.getValue());
+                            } else {
+                                sentences = summarizer.summarizeURL(uri);
+                            }
                             int len = (int) Math.ceil(0.3 * sentences.size());
                             for (ScoredSentence s : sentences) {
                                 summary.append(s.getText());
