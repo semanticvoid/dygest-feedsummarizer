@@ -15,6 +15,7 @@ import com.sun.syndication.io.SyndFeedInput;
 import com.sun.syndication.io.SyndFeedOutput;
 import dygest.commons.db.simple.DocumentDB;
 import dygest.commons.store.s3.S3Accessor;
+import dygest.html.parser.GaussianParser;
 import dygest.text.ScoredSentence;
 import dygest.text.summerizer.SynmanticSummerizer;
 import java.net.URL;
@@ -60,11 +61,12 @@ public class FeedSummarizer {
                 String link = feed.getLink();
                 boolean expand = false;
                 
-//                if(link.contains("readtwit.com")) {
+                if(link.contains("readtwit.com")) {
                     expand = true;
-//                }
+                }
 
                 for (SyndEntryImpl entry : entries) {
+                    GaussianParser parser = new GaussianParser(0);
                     String uri = entry.getLink();
                     StringBuffer summary = null;
 
@@ -80,9 +82,10 @@ public class FeedSummarizer {
                         }
 
                         // add footer
-                        summary.append("<br><p><i>summarized by <a href='http://dyge.st'>dyge.st</a></p>");
+                        summary.append("<br><p><i>summarized by <a href='http://dyge.st'>dyge.st</a></i></p>");
                     }
 
+                    // Then process the Content parts
                     Iterator contentIter = entry.getContents().iterator();
                     while (contentIter.hasNext()) {
                         // Target the description node
@@ -92,11 +95,13 @@ public class FeedSummarizer {
                         if(summary == null) {
                             summary = new StringBuffer();
                             List<ScoredSentence> sentences;
-                            if(content.getValue().length() > 2000) {
-                                System.out.println("using content for " + uri);
-                                sentences = summarizer.summarizeText(content.getValue());
+
+                            String txt = parser.parseText(content.getValue());
+                            if(txt.length() > 280) {
+                                System.out.println("Summarizing text for " + uri);
+                                sentences = summarizer.summarizeText(txt);
                             } else {
-                                System.out.println("get url: " + uri);
+                                System.out.println("Summarizing URL for " + uri);
                                 sentences = summarizer.summarizeURL(uri);
                             }
 
@@ -109,21 +114,26 @@ public class FeedSummarizer {
                             }
 
                             // add footer
-                            summary.append("<br><p><i>summarized by <a href='http://dyge.st'>dyge.st</a></p>");
+                            summary.append("<br><p><i>summarized by <a href='http://dyge.st'>dyge.st</a></i></p>");
                         }
 
                         // Create and set a footer-appended description
                         content.setValue(summary.toString());
                     }
 
+                    // Process Description first
                     SyndContent desc = entry.getDescription();
                     if (desc != null) {
-                        if(summary == null) {
+//                        if(summary == null) {
                             summary = new StringBuffer();
                             List<ScoredSentence> sentences;
-                            if(desc.getValue().length() > 2000) {
-                                sentences = summarizer.summarizeText(desc.getValue());
+
+                            String txt = parser.parseText(desc.getValue());
+                            if(txt.length() > 280) {
+                                System.out.println("Summarizing text for " + uri);
+                                sentences = summarizer.summarizeText(txt);
                             } else {
+                                System.out.println("Summarizing URL for " + uri);
                                 sentences = summarizer.summarizeURL(uri);
                             }
                             int len = (int) Math.ceil(0.3 * sentences.size());
@@ -134,9 +144,9 @@ public class FeedSummarizer {
                                 }
                             }
                             // add footer
-                            summary.append("<br><p><i>summarized by <a href='http://dyge.st'>dyge.st</a></p>");
-                        }
-                        
+                            summary.append("<br><p><i>summarized by <a href='http://dyge.st'>dyge.st</a></i></p>");
+//                        }
+
                         // Create and set a footer-appended description
                         desc.setValue(summary.toString());
                     }
